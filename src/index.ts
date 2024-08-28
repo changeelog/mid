@@ -59,14 +59,12 @@ class NewsFeedFetcher {
         : `https://mid.ru/ru/foreign_policy/news/?PAGEN_1=${pageNumber}`
 
     console.log(`Fetching page ${pageNumber}...`)
-    await this.page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 })
+    await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
 
-    // Ждем, пока не появится нужный элемент или пройдет 10 секунд
     await this.page
       .waitForSelector('.announce__item', { timeout: 10000 })
       .catch(() => console.log('Timeout waiting for .announce__item'))
 
-    // Проверяем, загрузилась ли страница корректно
     const pageContent = await this.page.content()
     if (pageContent.includes('Data processing... Please, wait.')) {
       console.log('Anti-bot protection detected. Waiting for page to load...')

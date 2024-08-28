@@ -19,7 +19,7 @@ class NewsFeedFetcher {
   private page: Page | null = null
 
   async initialize(): Promise<void> {
-    this.browser = await puppeteer.launch({
+    const browserOptions: any = {
       headless: true,
       args: [
         '--no-sandbox',
@@ -30,12 +30,18 @@ class NewsFeedFetcher {
         '--no-zygote',
         '--disable-gpu',
       ],
-    })
+    }
+
+    if (process.platform === 'linux') {
+      browserOptions.executablePath = '/usr/bin/chromium-browser'
+    }
+
+    this.browser = await puppeteer.launch(browserOptions)
     this.page = await this.browser.newPage()
 
-    const userAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
-    await this.page.setUserAgent(userAgent)
+    await this.page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    )
 
     await this.page.setExtraHTTPHeaders({
       'Accept-Language': 'en-US,en;q=0.9',

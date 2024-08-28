@@ -32,9 +32,16 @@ class NewsFeedFetcher {
       ],
     })
     this.page = await this.browser.newPage()
-    await this.page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    )
+
+    const userAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+    await this.page.setUserAgent(userAgent)
+
+    await this.page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    })
   }
 
   async getContent(pageNumber: number = 1): Promise<NewsItem[]> {
@@ -46,7 +53,21 @@ class NewsFeedFetcher {
         : `https://mid.ru/ru/foreign_policy/news/?PAGEN_1=${pageNumber}`
 
     console.log(`Fetching page ${pageNumber}...`)
-    await this.page.goto(url, { waitUntil: 'networkidle0' })
+    await this.page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 })
+
+    // Ждем, пока не появится нужный элемент или пройдет 10 секунд
+    await this.page
+      .waitForSelector('.announce__item', { timeout: 10000 })
+      .catch(() => console.log('Timeout waiting for .announce__item'))
+
+    // Проверяем, загрузилась ли страница корректно
+    const pageContent = await this.page.content()
+    if (pageContent.includes('Data processing... Please, wait.')) {
+      console.log('Anti-bot protection detected. Waiting for page to load...')
+      await this.page
+        .waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 })
+        .catch(() => console.log('Timeout waiting for navigation'))
+    }
 
     const newsItems = await this.page.evaluate(() => {
       const items: NewsItem[] = []
@@ -76,6 +97,7 @@ class NewsFeedFetcher {
       return items
     })
 
+    console.log(`Found ${newsItems.length} news items on page ${pageNumber}`)
     return newsItems
   }
 

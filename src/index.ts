@@ -62,8 +62,10 @@ class NewsFeedFetcher {
     await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
 
     await this.page
-      .waitForSelector('.announce__item', { timeout: 10000 })
-      .catch(() => console.log('Timeout waiting for .announce__item'))
+      .waitForSelector('.announce.announce_articles', { timeout: 10000 })
+      .catch(() =>
+        console.log('Timeout waiting for .announce.announce_articles'),
+      )
 
     const pageContent = await this.page.content()
     if (pageContent.includes('Data processing... Please, wait.')) {
@@ -75,7 +77,10 @@ class NewsFeedFetcher {
 
     const newsItems = await this.page.evaluate(() => {
       const items: NewsItem[] = []
-      const announceItems = document.querySelectorAll('.announce__item')
+      const announceList = document.querySelector('.announce.announce_articles')
+      if (!announceList) return items
+
+      const announceItems = announceList.querySelectorAll('.announce__item')
 
       announceItems.forEach((item) => {
         const dateElement = item.querySelector('.announce__date')

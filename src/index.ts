@@ -7,6 +7,14 @@ import winston from 'winston'
 
 puppeteer.use(StealthPlugin())
 
+/**
+ * Represents a news item with its details
+ * @param {string} date - The date of the news item
+ * @param {string} time - The time of the news item
+ * @param {string} title - The title of the news item
+ * @param {string} link - The link to the news item
+ * @param {string[]} tags - An array of tags associated with the news item
+ */
 interface NewsItem {
   date: string
   time: string
@@ -15,7 +23,9 @@ interface NewsItem {
   tags: string[]
 }
 
-// Настройка логгера
+/**
+ * Configure Winston logger
+ */
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -35,6 +45,10 @@ class NewsFeedFetcher {
   private browser: Browser | null = null
   private page: Page | null = null
 
+  /**
+   * Initialize the browser and page
+   * @throws {Error} If browser initialization fails
+   */
   async initialize(): Promise<void> {
     try {
       const browserOptions: any = {
@@ -53,10 +67,12 @@ class NewsFeedFetcher {
       this.browser = await puppeteer.launch(browserOptions)
       this.page = await this.browser.newPage()
 
+      // Set user agent to avoid detection
       await this.page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
       )
 
+      // Set extra headers
       await this.page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.9',
         Accept:
@@ -69,6 +85,12 @@ class NewsFeedFetcher {
     }
   }
 
+  /**
+   * Fetch content from the specified page number
+   * @param {number} pageNumber - The page number to fetch (default: 1)
+   * @returns {Promise<NewsItem[]>} Array of news items
+   * @throws {Error} If fetching fails
+   */
   async getContent(pageNumber: number = 1): Promise<NewsItem[]> {
     if (!this.page) throw new Error('Browser not initialized')
 
@@ -84,12 +106,14 @@ class NewsFeedFetcher {
         timeout: 60000,
       })
 
+      // Wait for the content to load
       await this.page
         .waitForSelector('.announce.announce_articles', { timeout: 10000 })
         .catch(() => {
           logger.warn('Timeout waiting for .announce.announce_articles')
         })
 
+      // Check for anti-bot protection
       const pageContent = await this.page.content()
       if (pageContent.includes('Data processing... Please, wait.')) {
         logger.info('Anti-bot protection detected. Waiting for page to load...')
@@ -98,6 +122,7 @@ class NewsFeedFetcher {
           .catch(() => logger.warn('Timeout waiting for navigation'))
       }
 
+      // Extract news items from the page
       const newsItems = await this.page.evaluate(() => {
         const items: NewsItem[] = []
         const announceList = document.querySelector(
@@ -139,6 +164,12 @@ class NewsFeedFetcher {
     }
   }
 
+  /**
+   * Save news items to a JSON file
+   * @param {NewsItem[]} data - Array of news items to save
+   * @param {string} filename - Name of the file to save the data
+   * @throws {Error} If saving fails
+   */
   async saveToJSON(data: NewsItem[], filename: string): Promise<void> {
     try {
       const dir = './output'
@@ -154,6 +185,9 @@ class NewsFeedFetcher {
     }
   }
 
+  /**
+   * Close the browser
+   */
   async close(): Promise<void> {
     if (this.browser) {
       await this.browser.close()
@@ -161,6 +195,7 @@ class NewsFeedFetcher {
     }
   }
 }
+
 
 async function main() {
   const fetcher = new NewsFeedFetcher()

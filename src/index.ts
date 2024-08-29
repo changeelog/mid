@@ -31,11 +31,7 @@ class NewsFeedFetcher {
         '--disable-gpu',
       ],
     }
-
-    if (process.platform === 'linux') {
-      browserOptions.executablePath = '/usr/bin/chromium-browser'
-    }
-
+    
     this.browser = await puppeteer.launch(browserOptions)
     this.page = await this.browser.newPage()
 
